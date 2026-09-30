@@ -44,36 +44,86 @@ class PinterestScraper:
         search_url = f"https://www.pinterest.com/search/{media_type}/?q={quote(query)}"
         print(f"🔍 Searching Pinterest {media_type}: {query}")
         pins = []
+        pin_ids = set()
+        video_urls = set()
+        image_urls = set()
+
+        def harvest(node):
+            """Recursively pull pin ids, mp4 urls and image urls from API JSON."""
+            if isinstance(node, dict):
+                pin_id = node.get("id")
+                if isinstance(pin_id, str) and pin_id.isdigit():
+                    pin_ids.add(pin_id)
+                images = node.get("images")
+                if isinstance(images, dict):
+                    for variant in images.values():
+                        url = (variant or {}).get("url") if isinstance(variant, dict) else None
+                        if isinstance(url, str) and "pinimg.com" in url:
+                            image_urls.add(url)
+                videos = node.get("videos") if isinstance(node.get("videos"), dict) else node
+                vlist = videos.get("video_list") if isinstance(videos, dict) else None
+                if isinstance(vlist, dict):
+                    for v in vlist.values():
+                        url = (v or {}).get("url")
+                        if isinstance(url, str) and ".mp4" in url:
+                            video_urls.add(url)
+                for v in node.values():
+                    harvest(v)
+            elif isinstance(node, list):
+                for v in node:
+                    harvest(v)
+
+        async def on_response(resp):
+            if "json" not in resp.headers.get("content-type", ""):
+                return
+            try:
+                harvest(await resp.json())
+            except Exception:
+                pass
+
         async with get_async_playwright()() as p:
             browser = await p.chromium.launch(headless=True)
             page = await browser.new_page(user_agent=self.user_agent)
+            page.on("response", on_response)
             try:
-                await page.goto(search_url, wait_until="networkidle", timeout=60000)
+                # Pinterest streams background requests forever, so "networkidle" never fires
+                # and page.goto would always time out. Pin data arrives via JSON API responses,
+                # which we harvest above; the DOM itself no longer exposes /pin/ links logged-out.
+                await page.goto(search_url, wait_until="domcontentloaded", timeout=60000)
+                await page.wait_for_timeout(2000)
                 for _ in range(scroll_count):
                     await page.evaluate("window.scrollBy(0, 1500)")
                     await asyncio.sleep(1)
-                hrefs = await page.evaluate('() => Array.from(document.querySelectorAll(\'a[href*="/pin/"]\')).map(a => a.href)')
-                seen = set()
-                for href in hrefs:
-                    match = re.search(r'/pin/(\d+)/?', href)
-                    if match and match.group(1) not in seen:
-                        pins.append(f"https://www.pinterest.com/pin/{match.group(1)}/")
-                        seen.add(match.group(1))
-            except: pass
+            except Exception as e:
+                print(f"⚠️ Pinterest search failed: {e}")
             finally: await browser.close()
-        print(f"📌 Found {len(pins)} pins")
+
+        self._harvested_video_urls = list(video_urls)
+        self._harvested_image_urls = list(image_urls)
+        pins = [f"https://www.pinterest.com/pin/{pid}/" for pid in pin_ids]
+        print(f"📌 Found {len(pins)} pins, {len(video_urls)} video urls, {len(image_urls)} image urls")
         return pins
 
     async def search_images(self, query, num_images=5):
         urls = await self.get_pin_urls(query, media_type="pins", scroll_count=3)
         folder = self._get_folder(query)
         results = []
+        # Fast path: image URLs harvested straight from API responses.
+        direct = getattr(self, "_harvested_image_urls", [])[:num_images]
+        if direct:
+            tasks = [asyncio.to_thread(self.download_file, u, folder / f"pin_{i}.jpg") for i, u in enumerate(direct)]
+            await asyncio.gather(*tasks)
+            results = [str(f) for f in sorted(folder.glob("pin_*.jpg")) if f.stat().st_size > 0][:num_images]
+        if len(results) >= num_images or not urls:
+            return results[:num_images]
+        # Fallback: visit pin pages for the remaining slots.
         for i, pin_url in enumerate(urls[:num_images*2]):
             try:
                 async with get_async_playwright()() as p:
                     browser = await p.chromium.launch(headless=True)
                     page = await browser.new_page(user_agent=self.user_agent)
-                    await page.goto(pin_url, wait_until="networkidle", timeout=30000)
+                    await page.goto(pin_url, wait_until="domcontentloaded", timeout=30000)
+                    await page.wait_for_timeout(1500)
                     img_url = await page.evaluate('() => { const img = document.querySelector(\'img[srcset]\'); return img ? img.src : null; }')
                     await browser.close()
                     if img_url:
@@ -88,11 +138,21 @@ class PinterestScraper:
 
     async def search_videos(self, query, num_videos=3):
         urls = await self.get_pin_urls(query, media_type="videos", scroll_count=3)
-        if not urls: return []
+        if not urls and not getattr(self, "_harvested_video_urls", []): return []
         folder = self._get_folder(query)
+        results = []
+        # Fast path: download mp4s directly from harvested API URLs (no yt-dlp needed).
+        direct = getattr(self, "_harvested_video_urls", [])[:num_videos*2]
+        if direct:
+            print(f"⚡ Downloading {min(len(direct), num_videos)} videos directly from API urls...")
+            tasks = [asyncio.to_thread(self.download_file, u, folder / f"vid_{i}.mp4") for i, u in enumerate(direct)]
+            await asyncio.gather(*tasks)
+            results = [str(f) for f in sorted(folder.glob("vid_*.mp4")) if f.stat().st_size > 0][:num_videos]
+        if len(results) >= num_videos or not urls:
+            return results
         print(f"📌 Found {len(urls)} pins, downloading via yt-dlp...")
         downloader = VideoDownloader(output_dir=folder)
-        return await downloader.download_parallel(urls, max_count=num_videos)
+        return results + await downloader.download_parallel(urls, max_count=num_videos - len(results))
 
     def download_file(self, url, path):
         try:
@@ -726,7 +786,9 @@ class WebScraper:
             browser = await p.chromium.launch(headless=True)
             page = await browser.new_page(user_agent=self.user_agent)
             try:
-                await page.goto(url, wait_until="networkidle", timeout=60000)
+                # Many article pages stream requests indefinitely; networkidle can never fire.
+                await page.goto(url, wait_until="domcontentloaded", timeout=60000)
+                await page.wait_for_timeout(2500)
                 # Remove script/style tags
                 await page.evaluate('''() => {
                     const elements = document.querySelectorAll("script, style, nav, footer, header");

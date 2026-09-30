@@ -25,6 +25,12 @@ FONT_CANDIDATES = [
     "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
     "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
     "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+    # macOS: CJK-capable system fonts (required for Chinese subtitles)
+    "/System/Library/Fonts/PingFang.ttc",
+    "/System/Library/Fonts/Hiragino Sans GB.ttc",
+    "/System/Library/Fonts/Supplemental/Songti.ttc",
+    "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+    "/System/Library/Fonts/Supplemental/Arial.ttf",
     "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
     "arialbd.ttf",
     "arial.ttf",
@@ -86,8 +92,30 @@ def chunk_subtitle_text(text, words_per_chunk=3, cjk_chars_per_chunk=8):
     return [" ".join(words[i:i + words_per_chunk]) for i in range(0, len(words), words_per_chunk)] or [text]
 
 def apply_ken_burns(clip, duration):
-    """Applies a slow zoom-in effect (Ken Burns)."""
-    return clip
+    """Slow zoom-in (1.0 → ~1.12) for image clips.
+
+    Animates a shrinking center-crop window and rescales it back to the original
+    frame size, so every frame keeps the same dimensions — the fixed crop/resize
+    later in the pipeline can't cancel the motion, and no black edges appear.
+    """
+    import numpy as np
+    from PIL import Image
+
+    if duration <= 0:
+        return clip
+
+    def effect(get_frame, t):
+        frame = get_frame(t)
+        h, w = frame.shape[:2]
+        zoom = 1.0 + 0.12 * (t / duration)
+        cw, ch = max(2, int(w / zoom)), max(2, int(h / zoom))
+        x0, y0 = (w - cw) // 2, (h - ch) // 2
+        window = frame[y0:y0 + ch, x0:x0 + cw]
+        return np.array(Image.fromarray(window).resize((w, h), Image.LANCZOS))
+
+    # transform() passes (get_frame, t); image_transform() passes only the frame,
+    # which can't animate over time.
+    return clip.transform(effect)
 
 def apply_zoom_in(clip, duration):
     """Dramatic zoom in."""
@@ -103,8 +131,36 @@ def apply_slide_left(clip, duration):
     return clip.with_position(lambda t: (max(0, w * (1 - 5*t/duration)), "center"))
 
 def apply_glitch(clip, duration):
-    """Simulates a glitch effect by random shifting."""
-    return clip
+    """Simulates a glitch: RGB channel split + horizontal slice displacement,
+
+    bursting near the start and end of the clip (clean in the middle so it reads
+    as a transition, not a permanent effect). Output frames keep constant size.
+    """
+    import numpy as np
+
+    if duration <= 0:
+        return clip
+    window = min(0.4, duration / 4)
+
+    def effect(get_frame, t):
+        frame = get_frame(t)
+        if t > window and t < duration - window:
+            return frame
+        h, w = frame.shape[:2]
+        rng = random.Random(int(t * 60))
+        out = frame.copy()
+        shift = max(2, w // 200)
+        if w > shift:
+            out[:, :-shift, 0] = frame[:, shift:, 0]   # red channel left
+            out[:, shift:, 2] = frame[:, :-shift, 2]   # blue channel right
+        for _ in range(4):
+            y = rng.randint(0, max(0, h - 2))
+            band_h = rng.randint(1, max(1, h // 30))
+            dx = rng.randint(-w // 30, w // 30)
+            out[y:y + band_h] = np.roll(out[y:y + band_h], dx, axis=1)
+        return out
+
+    return clip.transform(effect)
 
 class SubtitleHelper:
     @staticmethod
@@ -388,9 +444,12 @@ class VideoEngine:
                     visual_clip = visual_clip.with_effects([vfx.InvertColors()])
 
             # Keep suspense videos visually stable: no random shake/glitch/zoom.
-            trans_type = random.choice(["fade", "none"])
+            trans_choices = ["fade", "none"] if vibe == "suspense_cn" else ["fade", "none", "glitch"]
+            trans_type = random.choice(trans_choices)
             if trans_type == "fade":
                 visual_clip = visual_clip.with_effects([vfx.FadeIn(0.5), vfx.FadeOut(0.5)])
+            elif trans_type == "glitch":
+                visual_clip = apply_glitch(visual_clip, visual_clip.duration)
 
             try:
                 visual_clip = crop_center(visual_clip, w, h)
