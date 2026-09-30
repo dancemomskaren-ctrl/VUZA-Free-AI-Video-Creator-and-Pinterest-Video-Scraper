@@ -1,6 +1,6 @@
 ﻿<div align="center">
 
-# 🎬 VUZA — Free AI Video Creator & Faceless Video Generator
+# 🎬 UPDATEDVUZA — Free AI Video Creator & Faceless Video Generator
 
 ### A Working, Open-Source Alternative to Pictory AI, InVideo AI & MoneyPrinter Turbo — That Actually Works End-to-End.
 
