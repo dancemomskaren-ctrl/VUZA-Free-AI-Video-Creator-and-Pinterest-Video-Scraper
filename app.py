@@ -26,7 +26,7 @@ for stream in (sys.stdout, sys.stderr):
 
 from aesthetic_scraper import PinterestScraper, PexelsScraper, PixabayScraper, VideoDownloader, LLMProcessor, WebScraper
 
-app = FastAPI(title="VUZA — 中文悬疑短视频自动生成工具")
+app = FastAPI(title="VUZA — Free AI Video Creator")
 
 BASE_DIR = Path(__file__).parent
 DOWNLOAD_DIR = BASE_DIR / "downloads"
@@ -39,7 +39,7 @@ app.mount("/downloads", StaticFiles(directory=str(DOWNLOAD_DIR)), name="download
 
 scraping_status = {
     "is_running": False, "progress": 0,
-    "message": "就绪", "mode": "single", "results": [],
+    "message": "Ready", "mode": "single", "results": [],
     "status": "idle", "final_video": None, "error": None
 }
 
@@ -52,7 +52,7 @@ class VideoSettings(BaseModel):
     subtitle_style: str = "high_retention"
     music: str = "none"
     filter: str = "none"
-    vibe: str = "suspense_cn"
+    vibe: str = "suspense"
     emoji_subtitles: bool = False
     watermark: bool = False
     logo_path: str = "static/logo.png"
@@ -100,15 +100,15 @@ async def get_status():
 @app.post("/api/analyze")
 async def analyze_script(request: ScrapeRequest):
     if not request.script:
-        raise HTTPException(status_code=400, detail="请先输入脚本")
+        raise HTTPException(status_code=400, detail="Enter a script first")
 
     api_keys = request.api_keys or ApiKeys()
-    require_llm_key(api_keys, "AI 标题分析")
+    require_llm_key(api_keys, "AI title analysis")
     llm = LLMProcessor(api_key=api_keys.llm_key, api_url=api_keys.llm_url, model=api_keys.llm_model)
     analysis = llm.generate_viral_metadata(request.script)
 
     if not analysis:
-        raise HTTPException(status_code=500, detail=llm.last_error or "分析失败，请检查 AI API Key")
+        raise HTTPException(status_code=500, detail=llm.last_error or "Analysis failed — check your AI API key")
 
     return analysis
 
@@ -120,15 +120,15 @@ class GenerateScriptRequest(BaseModel):
 @app.post("/api/generate_script")
 async def generate_script(request: GenerateScriptRequest):
     if not request.topic:
-        raise HTTPException(status_code=400, detail="请先输入主题")
+        raise HTTPException(status_code=400, detail="Enter a topic first")
 
     api_keys = request.api_keys or ApiKeys()
-    require_llm_key(api_keys, "脚本生成")
+    require_llm_key(api_keys, "Script generation")
     llm = LLMProcessor(api_key=api_keys.llm_key, api_url=api_keys.llm_url, model=api_keys.llm_model)
     script = llm.generate_full_script(request.topic, vibe=request.vibe)
 
     if not script:
-        raise HTTPException(status_code=500, detail=llm.last_error or "脚本生成失败，请检查 AI API Key")
+        raise HTTPException(status_code=500, detail=llm.last_error or "Script generation failed — check your AI API key")
 
     return {"script": script}
 
@@ -139,21 +139,21 @@ class ScrapeUrlRequest(BaseModel):
 @app.post("/api/scrape_url")
 async def scrape_url_endpoint(request: ScrapeUrlRequest):
     if not request.url:
-        raise HTTPException(status_code=400, detail="请先粘贴链接")
+        raise HTTPException(status_code=400, detail="Paste a link first")
 
     api_keys = request.api_keys or ApiKeys()
-    require_llm_key(api_keys, "链接内容总结")
+    require_llm_key(api_keys, "Article summarization")
 
     scraper = WebScraper()
     content = await scraper.scrape_url(request.url)
     if not content:
-        raise HTTPException(status_code=500, detail="链接内容提取失败")
+        raise HTTPException(status_code=500, detail="Failed to extract content from the link")
 
     llm = LLMProcessor(api_key=api_keys.llm_key, api_url=api_keys.llm_url, model=api_keys.llm_model)
     script = llm.summarize_url(content)
 
     if not script:
-        raise HTTPException(status_code=500, detail="链接内容总结失败")
+        raise HTTPException(status_code=500, detail="Failed to summarize the link content")
 
     return {"script": script}
 
@@ -170,7 +170,7 @@ def load_video_engine():
         from video_engine import VideoEngine
     except ModuleNotFoundError as exc:
         missing = exc.name or "video dependencies"
-        raise RuntimeError(f"视频合成依赖缺失：{missing}。请运行 pip install -r requirements.txt 后重试。") from exc
+        raise RuntimeError(f"Video assembly dependency missing: {missing}. Run pip install -r requirements.txt and retry.") from exc
     return VideoEngine
 
 def load_youtube_uploader():
@@ -178,12 +178,12 @@ def load_youtube_uploader():
         from youtube_utils import YouTubeUploader
     except ModuleNotFoundError as exc:
         missing = exc.name or "YouTube upload dependencies"
-        raise RuntimeError(f"YouTube 上传依赖缺失：{missing}。请运行 pip install -r requirements.txt 后重试。") from exc
+        raise RuntimeError(f"YouTube upload dependency missing: {missing}. Run pip install -r requirements.txt and retry.") from exc
     return YouTubeUploader
 
 def require_llm_key(api_keys, action):
     if not (api_keys.llm_key or "").strip():
-        raise HTTPException(status_code=400, detail=f"{action}需要先配置 AI 文本密钥。")
+        raise HTTPException(status_code=400, detail=f"{action} requires an AI text API key. Add one in API Settings first.")
 
 def normalized_script_inputs(request):
     scripts = [(script or "").strip() for script in (request.scripts or [])]
@@ -202,27 +202,27 @@ def normalize_scrape_request_options(request):
 def validate_scrape_request_options(request):
     normalize_scrape_request_options(request)
     if request.source not in VALID_SOURCES:
-        raise RuntimeError(f"素材来源无效：{request.source}。请选择 ai、pinterest、pexels 或 pixabay。")
+        raise RuntimeError(f"Invalid media source: {request.source}. Choose ai, pinterest, pexels, or pixabay.")
     if request.media_type not in VALID_MEDIA_TYPES:
-        raise RuntimeError(f"素材类型无效：{request.media_type}。请选择 photo 或 video。")
+        raise RuntimeError(f"Invalid media type: {request.media_type}. Choose photo or video.")
     if request.source == "ai" and request.media_type != "photo":
-        raise RuntimeError("AI 生图模式当前只支持图片素材；如需视频素材，请切换到 Pinterest、Pexels 或 Pixabay。")
+        raise RuntimeError("AI image mode currently supports photos only; switch to a stock source for video media.")
     if request.mode not in VALID_MODES:
-        raise RuntimeError(f"生成模式无效：{request.mode}。请选择 single 或 script。")
+        raise RuntimeError(f"Invalid generation mode: {request.mode}. Choose single or script.")
     if request.count < 1 or request.count > 15:
-        raise RuntimeError("每句素材数必须在 1 到 15 之间。")
+        raise RuntimeError("Media per line must be between 1 and 15.")
     if request.mode != "script" and not (request.query or "").strip():
-        raise RuntimeError("单条生成需要先输入主题 query。")
+        raise RuntimeError("Single generation requires a topic query first.")
     if request.mode == "script":
         if not normalized_script_inputs(request):
-            raise RuntimeError("脚本模式需要先输入至少一段旁白脚本。")
+            raise RuntimeError("Script mode requires at least one narration script.")
     if request.auto_video:
         settings = request.video_settings or VideoSettings()
         if (settings.voice or "").strip().lower() == "none":
-            raise RuntimeError("自动合成视频需要选择一个 AI 配音；如需不配音，请先关闭自动合成视频。")
+            raise RuntimeError("Auto video needs an AI voiceover; set auto-assemble off if you want no narration.")
         resolve_background_music(settings)
         if request.mode == "single" and request.source != "ai":
-            raise RuntimeError("单条素材搜索不会自动合成视频；请切换到脚本模式，或关闭自动合成视频。")
+            raise RuntimeError("A single stock search won't auto-assemble a video; switch to script mode or turn auto-assemble off.")
 
 def validate_ai_image_keys(request):
     if request.source != "ai":
@@ -234,14 +234,14 @@ def validate_ai_image_keys(request):
     if not (api_keys.seedream_key or "").strip():
         missing.append("seedream_key")
     if missing:
-        raise RuntimeError(f"AI 生图模式需要同时配置 DeepSeek/兼容 LLM API Key 与 Seedream API Key，缺少：{', '.join(missing)}。当前默认不启用 Pollinations 兜底。")
+        raise RuntimeError(f"AI image mode needs both an LLM API key and a Seedream API key. Missing: {', '.join(missing)}. The Pollinations fallback is disabled by default.")
 
 def validate_script_keyword_key(request):
     if request.mode != "script" or request.source == "ai":
         return
     api_keys = request.api_keys or ApiKeys()
     if not (api_keys.llm_key or "").strip():
-        raise RuntimeError("脚本模式使用 Pinterest/Pexels/Pixabay 素材源时，需要先配置 AI 文本密钥，用于把旁白拆成搜索关键词。")
+        raise RuntimeError("Script mode with Pinterest/Pexels/Pixabay sources needs an AI text key to split the narration into search keywords.")
 
 def validate_request_api_dependencies(request):
     validate_ai_image_keys(request)
@@ -255,7 +255,7 @@ def local_script_segments(script):
         line = re.sub(r'^\s*[\-\*\d\.\)\uff08\uff09、]+\s*', '', raw_line).strip()
         if not line:
             continue
-        parts = [p.strip() for p in re.split(r'(?<=[。！？!?；;])\s*', line) if p.strip()]
+        parts = [p.strip() for p in re.split(r'(?<=[。！？!?；;])\s*|(?<=[.!?])\s+', line) if p.strip()]
         if len(parts) > 1:
             rows.extend(parts)
             continue
@@ -265,7 +265,7 @@ def local_script_segments(script):
         rows.extend(parts)
 
     if not rows:
-        rows = [p.strip() for p in re.split(r'(?<=[。！？!?；;])\s*', cleaned) if p.strip()]
+        rows = [p.strip() for p in re.split(r'(?<=[。！？!?；;])\s*|(?<=[.!?])\s+', cleaned) if p.strip()]
 
     return [
         {"sentence": sentence, "keyword": f"scene_{idx + 1:03d}"}
@@ -308,14 +308,14 @@ def safe_scene_folder(project_path, keyword):
 
 def describe_scene_media_error(error):
     if not error:
-        return "未生成/下载到素材"
+        return "No media was generated or downloaded"
     return str(error) or error.__class__.__name__
 
 def describe_empty_media_result(source, media_type):
     if source == "ai":
-        return "Seedream 4.5 未返回有效图片"
-    media_label = "视频" if media_type == "video" else "图片"
-    return f"{source} 未找到可用{media_label}素材"
+        return "Seedream 4.5 returned no valid images"
+    media_label = "video" if media_type == "video" else "photo"
+    return f"{source} found no usable {media_label} media"
 
 def validate_scene_images(keyword_data, project_path):
     missing = []
@@ -332,9 +332,9 @@ def validate_scene_images(keyword_data, project_path):
         files = explicit_files or folder_files
         if not files:
             reason = describe_scene_media_error(item.get("_error"))
-            missing.append(f"第 {idx} 个分镜（{item['keyword']}）：{reason}")
+            missing.append(f"scene {idx} ({item['keyword']}): {reason}")
     if missing:
-        raise RuntimeError(f"分镜素材不完整：应有 {len(keyword_data)} 个分镜图/视频，缺少 {len(missing)} 个：{'; '.join(missing[:5])}")
+        raise RuntimeError(f"Scene media incomplete: expected {len(keyword_data)} scenes, missing {len(missing)}: {'; '.join(missing[:5])}")
 
 def validate_tts_files(engine, scene_count):
     missing = []
@@ -343,14 +343,14 @@ def validate_tts_files(engine, scene_count):
         if not path.exists() or path.stat().st_size <= 0:
             missing.append(idx + 1)
     if missing:
-        raise RuntimeError(f"TTS 文件不完整：应有 {scene_count} 个，缺少/为空 {len(missing)} 个：{missing[:8]}")
+        raise RuntimeError(f"TTS files incomplete: expected {scene_count}, missing/empty {len(missing)}: {missing[:8]}")
 
 def validate_final_video(video_file):
     if not video_file:
-        raise RuntimeError("视频合成失败：create_video 没有返回 mp4 路径。")
+        raise RuntimeError("Video assembly failed: create_video returned no mp4 path.")
     video_path = Path(video_file)
     if video_path.suffix.lower() != ".mp4" or not video_path.exists() or video_path.stat().st_size <= 0:
-        raise RuntimeError(f"视频合成失败：create_video 返回的 mp4 不存在或为空：{video_file}")
+        raise RuntimeError(f"Video assembly failed: returned mp4 missing or empty: {video_file}")
     return video_path
 
 def existing_media_paths(files):
@@ -369,7 +369,7 @@ def existing_media_paths(files):
 def require_media_files(files, label):
     valid = existing_media_paths(files)
     if not valid:
-        raise RuntimeError(f"没有找到可用素材：{label}。请换关键词或素材来源，或检查素材 API Key/网络。")
+        raise RuntimeError(f"No usable media found: {label}. Try different keywords or sources, and check your media API keys/network.")
     return valid
 
 def resolve_background_music(settings):
@@ -377,11 +377,11 @@ def resolve_background_music(settings):
     if not music or music.lower() == "none":
         return None
     if Path(music).name != music:
-        raise RuntimeError("背景音乐文件名无效，请从页面下拉选项中选择。")
+        raise RuntimeError("Invalid background music file — pick one from the dropdown on the page.")
 
     music_path = BASE_DIR / "static" / "music" / music
     if not music_path.exists() or music_path.stat().st_size <= 0:
-        raise RuntimeError(f"背景音乐文件不存在或为空：static/music/{music}。请选择“无音乐”或补齐该文件。")
+        raise RuntimeError(f"Background music file missing or empty: static/music/{music}. Choose 'No music' or add the file.")
     return str(music_path)
 
 def normalize_seedream_url(url):
@@ -401,18 +401,18 @@ def file_to_data_url(path):
 
 def validate_image_bytes(content, label):
     if not content:
-        raise RuntimeError(f"{label} 返回了空图片内容。")
+        raise RuntimeError(f"{label} returned empty image content.")
     from PIL import Image
     try:
         Image.open(BytesIO(content)).verify()
     except Exception as exc:
-        raise RuntimeError(f"{label} 返回的内容不是有效图片。") from exc
+        raise RuntimeError(f"{label} returned content that is not a valid image.") from exc
     return content
 
 async def generate_seedream_image(prompt_text, file_path, api_keys, reference_image=None):
     seedream_key = (api_keys.seedream_key or "").strip() if api_keys else ""
     if not seedream_key:
-        raise RuntimeError("AI 生图模式需要 Seedream API Key，当前未配置 seedream_key。")
+        raise RuntimeError("AI image mode requires a Seedream API key; seedream_key is not configured.")
 
     import requests
     url = normalize_seedream_url(api_keys.seedream_url)
@@ -451,7 +451,7 @@ async def generate_seedream_image(prompt_text, file_path, api_keys, reference_im
         if image_url:
             image_response = requests.get(image_url, timeout=180)
             image_response.raise_for_status()
-            file_path.write_bytes(validate_image_bytes(image_response.content, "Seedream 图片下载"))
+            file_path.write_bytes(validate_image_bytes(image_response.content, "Seedream image download"))
             return str(file_path)
         if b64:
             file_path.write_bytes(validate_image_bytes(base64.b64decode(b64), "Seedream b64_json"))
@@ -480,8 +480,8 @@ async def generate_seedream_image(prompt_text, file_path, api_keys, reference_im
                     await asyncio.sleep(8 * attempt)
                 else:
                     break
-    detail = f"最后错误：{last_error}" if last_error else "未收到可用错误详情"
-    raise RuntimeError(f"Seedream 生图失败：所有请求 payload 与重试均未返回图片。{detail}")
+    detail = f"Last error: {last_error}" if last_error else "No usable error details received"
+    raise RuntimeError(f"Seedream image generation failed: all payloads and retries returned no image. {detail}")
 
 async def generate_ai_image(sentence, project_path, llm=None, vibe="suspense_cn", character_profile="", label="scene", seed=None, api_keys=None, reference_image=None, image_prompt=None):
     """Generate one vertical AI image for a sentence and save it locally."""
@@ -492,13 +492,13 @@ async def generate_ai_image(sentence, project_path, llm=None, vibe="suspense_cn"
     description = image_prompt or (await asyncio.to_thread(llm.generate_image_description, sentence) if llm else sentence)
     if safe_label == "main_character_reference":
         style = (
-            "vertical 9:16 protagonist reference portrait, realistic Chinese web drama character, "
+            "vertical 9:16 protagonist reference portrait, realistic cinematic film still, "
             "clear face, upper body, simple dark background, consistent clothing, no text, no watermark, high detail"
         )
         prompt_text = f"{description}. {style}"
     else:
         style = (
-            "vertical 9:16 cinematic suspense frame, realistic Chinese web drama still, "
+            "vertical 9:16 cinematic suspense frame, realistic film still, "
             "dark moody lighting, coherent composition, no text, no watermark, high detail"
         )
         prompt_text = f"{description}. {style}"
@@ -521,7 +521,7 @@ async def generate_ai_image(sentence, project_path, llm=None, vibe="suspense_cn"
             )
 
     if not ALLOW_POLLINATIONS_FALLBACK:
-        raise RuntimeError("AI 生图模式需要 seedream_key；当前默认不启用 Pollinations 兜底。")
+        raise RuntimeError("AI image mode requires seedream_key; the Pollinations fallback is disabled by default.")
 
     def fetch_image(url):
         response = requests.get(url, timeout=120)
@@ -638,7 +638,7 @@ async def run_scrape(request: ScrapeRequest):
     global scraping_status
     set_status(
         "running",
-        message="开始处理...",
+        message="Starting...",
         progress=0,
         error=None,
         final_video=None,
@@ -655,12 +655,12 @@ async def run_scrape(request: ScrapeRequest):
         if request.mode == "single" and source == "ai" and request.auto_video:
             topic = (request.query or "").strip()
             if not topic:
-                raise RuntimeError("主题到视频需要先输入主题 query。")
-            set_status(message="🧠 DeepSeek 正在根据主题生成完整脚本...", progress=3, mode="script")
+                raise RuntimeError("Topic-to-video requires a topic query first.")
+            set_status(message="🧠 AI is generating a full script from your topic...", progress=3, mode="script")
             llm = LLMProcessor(api_key=api_keys.llm_key, api_url=api_keys.llm_url, model=api_keys.llm_model)
             generated_script = await asyncio.to_thread(llm.generate_full_script, topic, request.vibe)
             if not generated_script:
-                raise RuntimeError(llm.last_error or "DeepSeek 没有生成可用脚本。")
+                raise RuntimeError(llm.last_error or "The AI did not generate a usable script.")
             request.mode = "script"
             request.script = generated_script
             request.scripts = [generated_script]
@@ -668,7 +668,7 @@ async def run_scrape(request: ScrapeRequest):
         if request.mode == "script":
             scripts = normalized_script_inputs(request)
             if not scripts:
-                raise RuntimeError("脚本模式需要提供 script 或 scripts。")
+                raise RuntimeError("Script mode requires a script or scripts.")
             for script_idx, script in enumerate(scripts):
                 words = re.findall(r'\w+', script)
                 project_name = "_".join(words[:5]).lower() or f"unnamed_{script_idx}"
@@ -678,16 +678,16 @@ async def run_scrape(request: ScrapeRequest):
 
                 llm = None
                 if source == "ai":
-                    scraping_status["message"] = f"🧩 正在本地拆分分镜 {script_idx+1}/{len(scripts)}..."
+                    scraping_status["message"] = f"🧩 Splitting scenes locally {script_idx+1}/{len(scripts)}..."
                     keyword_data = local_script_segments(script)
                     llm = LLMProcessor(api_key=api_keys.llm_key, api_url=api_keys.llm_url, model=api_keys.llm_model)
                 else:
-                    scraping_status["message"] = f"🧠 AI 正在分析脚本 {script_idx+1}/{len(scripts)}..."
+                    scraping_status["message"] = f"🧠 AI is analyzing the script {script_idx+1}/{len(scripts)}..."
                     llm = LLMProcessor(api_key=api_keys.llm_key, api_url=api_keys.llm_url, model=api_keys.llm_model)
                     keyword_data = llm.extract_keywords(script, vibe=request.vibe)
 
                 if not keyword_data:
-                    raise RuntimeError((llm.last_error if llm else "") or "没有生成可用的分镜，请检查脚本是否为空。")
+                    raise RuntimeError((llm.last_error if llm else "") or "No usable scenes were generated — check that the script is not empty.")
 
                 character_profile = ""
                 character_seed = None
@@ -695,18 +695,18 @@ async def run_scrape(request: ScrapeRequest):
                 if source == "ai":
                     image_provider = "Seedream 4.5"
 
-                    scraping_status["message"] = f"🧠 DeepSeek 正在生成主角设定 {script_idx+1}/{len(scripts)}..."
+                    scraping_status["message"] = f"🧠 AI is creating the main character profile {script_idx+1}/{len(scripts)}..."
                     character_profile = llm.generate_character_profile(script)
                     if not character_profile:
-                        raise RuntimeError(llm.last_error or "DeepSeek 没有生成可用主角设定。")
+                        raise RuntimeError(llm.last_error or "The AI did not produce a usable character profile.")
 
-                    scraping_status["message"] = f"🧠 DeepSeek 正在生成画面提示词 {script_idx+1}/{len(scripts)}..."
+                    scraping_status["message"] = f"🧠 AI is writing image prompts {script_idx+1}/{len(scripts)}..."
                     prompted_data = await asyncio.to_thread(llm.generate_scene_prompts, keyword_data, character_profile, request.vibe)
                     if not prompted_data:
-                        raise RuntimeError(llm.last_error or "DeepSeek 没有生成可用的画面提示词，未开始生图。")
+                        raise RuntimeError(llm.last_error or "The AI did not produce usable image prompts; image generation was not started.")
                     keyword_data = prompted_data
 
-                    scraping_status["message"] = f"🎨 {image_provider} 正在生成主角参考图 {script_idx+1}/{len(scripts)}..."
+                    scraping_status["message"] = f"🎨 {image_provider} is generating the character reference image {script_idx+1}/{len(scripts)}..."
                     character_seed = random.randint(1, 999999)
                     ref_path = await generate_ai_image(
                         f"Character reference portrait for the protagonist. {character_profile}",
@@ -723,7 +723,7 @@ async def run_scrape(request: ScrapeRequest):
                         try:
                             ref_rel = "/" + str(Path(ref_path).relative_to(BASE_DIR)).replace("\\", "/")
                             scraping_status["results"].append({
-                                "keyword": "主角人物参考",
+                                "keyword": "Main character reference",
                                 "sentence": character_profile,
                                 "files": [ref_rel]
                             })
@@ -734,7 +734,7 @@ async def run_scrape(request: ScrapeRequest):
                 batch_size = 3 if source == "ai" and api_keys.seedream_key else (1 if source == "ai" else 3)
                 for bs in range(0, total, batch_size):
                     batch = keyword_data[bs:bs + batch_size]
-                    action = "Seedream 4.5 正在并行生成分镜图" if source == "ai" else "正在搜索素材"
+                    action = "Seedream 4.5 is generating scene images in parallel" if source == "ai" else "Searching for media"
                     scraping_status["message"] = f"🔍 {action} {script_idx+1}/{len(scripts)} | {bs+1}-{min(bs+batch_size, total)}/{total}..."
 
                     search_tasks = [
@@ -774,14 +774,14 @@ async def run_scrape(request: ScrapeRequest):
                 if request.auto_video:
                     validate_scene_images(keyword_data, project_path)
 
-                    scraping_status["message"] = f"🎙️ 正在生成中文旁白 {script_idx+1}/{len(scripts)}..."
+                    scraping_status["message"] = f"🎙️ Generating voiceover {script_idx+1}/{len(scripts)}..."
                     engine = load_video_engine()(output_dir=project_path.parent)
                     if api_keys.eleven_key:
                         engine.set_eleven_key(api_keys.eleven_key)
                     settings = request.video_settings or VideoSettings()
                     voice = settings.voice if settings.voice != "none" else None
                     if not voice:
-                        raise RuntimeError("自动合成视频需要 TTS voice；当前 voice=none，无法生成与分镜数量一致的旁白文件。")
+                        raise RuntimeError("Auto video needs a TTS voice; voice is currently 'none', so narration files cannot be generated for every scene.")
 
                     if voice:
                         sem = asyncio.Semaphore(3)
@@ -791,7 +791,7 @@ async def run_scrape(request: ScrapeRequest):
                         await asyncio.gather(*[sem_voiceover(item["sentence"], idx) for idx, item in enumerate(keyword_data)])
                     validate_tts_files(engine, len(keyword_data))
 
-                    scraping_status["message"] = f"🎬 正在合成视频 {script_idx+1}/{len(scripts)}..."
+                    scraping_status["message"] = f"🎬 Assembling the video {script_idx+1}/{len(scripts)}..."
                     bg_music = resolve_background_music(settings)
 
                     # Ensure vibe is passed in settings
@@ -804,20 +804,20 @@ async def run_scrape(request: ScrapeRequest):
                     thumb_file = engine.generate_thumbnail(video_file, project_name.replace("_", " ").title())
                     try:
                         video_rel = relative_download_path(video_path)
-                        scraping_status["results"].append({"keyword": "合成视频", "files": [video_rel]})
+                        scraping_status["results"].append({"keyword": "Final video", "files": [video_rel]})
                         set_status(final_video=video_rel)
                     except Exception:
                         pass
                     if thumb_file:
                         try:
                             thumb_rel = "/" + str(Path(thumb_file).relative_to(BASE_DIR)).replace("\\", "/")
-                            scraping_status["results"].append({"keyword": "封面图", "files": [thumb_rel]})
+                            scraping_status["results"].append({"keyword": "Thumbnail", "files": [thumb_rel]})
                         except: pass
 
-                    scraping_status["message"] = f"✅ 视频已生成：{project_name}/final_aesthetic_video.mp4"
+                    scraping_status["message"] = f"✅ Video ready: {project_name}/final_aesthetic_video.mp4"
 
                     if request.yt_upload and video_file and api_keys.yt_client_id and api_keys.yt_client_secret:
-                        scraping_status["message"] = "📤 正在上传到 YouTube..."
+                        scraping_status["message"] = "📤 Uploading to YouTube..."
                         try:
                             uploader = load_youtube_uploader()(api_keys.yt_client_id, api_keys.yt_client_secret)
                             # Get metadata from AI if available, otherwise fallback
@@ -830,19 +830,19 @@ async def run_scrape(request: ScrapeRequest):
                             # For now, we'll use the project name.
 
                             await asyncio.to_thread(uploader.upload_video, video_file, title, description, tags)
-                            scraping_status["message"] += "（已上传到 YouTube）"
+                            scraping_status["message"] += " (uploaded to YouTube)"
                         except Exception as e:
-                            scraping_status["message"] += f"（上传失败：{e}）"
+                            scraping_status["message"] += f" (upload failed: {e})"
                 else:
                     validate_scene_images(keyword_data, project_path)
-                    scraping_status["message"] = f"✅ 素材已保存到 {project_name}/（视频合成已关闭）"
+                    scraping_status["message"] = f"✅ Media saved to {project_name}/ (video assembly was off)"
         else:
             query = request.query
             project_name = re.sub(r'[^\w\-]', '_', query).lower()
             project_path = DOWNLOAD_DIR / project_name / media_type
             project_path.mkdir(parents=True, exist_ok=True)
 
-            scraping_status["message"] = f"🔍 正在处理“{query}”..."
+            scraping_status["message"] = f"🔍 Processing '{query}'..."
             llm = None
             character_profile = ""
             character_seed = None
@@ -853,10 +853,10 @@ async def run_scrape(request: ScrapeRequest):
                 llm = LLMProcessor(api_key=api_keys.llm_key, api_url=api_keys.llm_url, model=api_keys.llm_model)
                 character_profile = llm.generate_character_profile(query)
                 if not character_profile:
-                    raise RuntimeError(llm.last_error or "DeepSeek 没有生成可用主角设定。")
+                    raise RuntimeError(llm.last_error or "The AI did not produce a usable character profile.")
                 image_prompt = llm.generate_image_description(query)
                 if not image_prompt:
-                    raise RuntimeError(llm.last_error or "DeepSeek 没有生成可用的画面提示词。")
+                    raise RuntimeError(llm.last_error or "The AI did not produce a usable image prompt.")
                 character_seed = random.randint(1, 999999)
             res_files = await universal_search(keyword=query, media_type=media_type, count=count, primary_source=source, project_path=project_path, api_keys=api_keys, llm=llm, sentence=query, character_profile=character_profile, character_seed=character_seed, character_reference=character_reference_path, image_prompt=image_prompt)
             valid_paths = require_media_files(res_files, query)
@@ -865,11 +865,11 @@ async def run_scrape(request: ScrapeRequest):
                 try: rel_paths.append("/" + str(path.relative_to(BASE_DIR)).replace("\\", "/"))
                 except: rel_paths.append(str(path))
             scraping_status["results"] = [{"keyword": query, "files": rel_paths}]
-            scraping_status["message"] = "✅ 已完成"
+            scraping_status["message"] = "✅ Done"
 
         set_status("success", progress=100)
     except Exception as e:
-        set_status("error", message=f"❌ 出错：{str(e)}", progress=100, error=str(e))
+        set_status("error", message=f"❌ Error: {str(e)}", progress=100, error=str(e))
         import traceback; traceback.print_exc()
     finally:
         scraping_status["is_running"] = False
@@ -878,7 +878,7 @@ async def run_scrape(request: ScrapeRequest):
 async def start_scrape(request: ScrapeRequest, background_tasks: BackgroundTasks):
     print(f"📥 VUZA Request: Mode={request.mode}, Source={request.source}, Vibe={request.vibe}")
     if scraping_status["is_running"]:
-        return JSONResponse(status_code=400, content={"message": "正在处理上一个任务，请稍等"})
+        return JSONResponse(status_code=400, content={"message": "Still processing the previous job — please wait"})
     try:
         validate_scrape_request_options(request)
         validate_request_api_dependencies(request)
@@ -886,7 +886,7 @@ async def start_scrape(request: ScrapeRequest, background_tasks: BackgroundTasks
         detail = str(exc)
         set_status(
             "error",
-            message=f"❌ 出错：{detail}",
+            message=f"❌ Error: {detail}",
             progress=100,
             error=detail,
             final_video=None,
@@ -895,7 +895,7 @@ async def start_scrape(request: ScrapeRequest, background_tasks: BackgroundTasks
         )
         raise HTTPException(status_code=400, detail=detail) from exc
     background_tasks.add_task(run_scrape, request)
-    return {"message": "已开始"}
+    return {"message": "Started"}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", "8000")))

@@ -13,7 +13,7 @@ from video_engine import VideoEngine, resolve_font_path
 
 OUT = Path(__file__).resolve().parent.parent / "downloads" / "render_smoke_test"
 
-TEXT = "咖啡在清晨的阳光下冒着热气，开启美好的一天。"
+TEXT = "Steam rises from a cup of coffee in the soft morning light — the start of something good."
 
 
 def make_fake_scene_image(path):
@@ -31,8 +31,8 @@ async def main():
 
     engine = VideoEngine(output_dir=str(OUT))
 
-    print("🎙 Generating TTS via Edge (zh-CN)...")
-    speech = await engine.generate_voiceover(TEXT, 0, voice="zh-CN-YunyangNeural", language="zh-CN")
+    print("🎙 Generating TTS via Edge (en-US)...")
+    speech = await engine.generate_voiceover(TEXT, 0, voice="en-US-ChristopherNeural", language="en-US")
     assert speech and Path(speech).stat().st_size > 0, f"TTS failed: {speech}"
     print(f"   ✓ {speech} ({Path(speech).stat().st_size} bytes)")
 
@@ -40,7 +40,7 @@ async def main():
     script_data = [{"sentence": TEXT, "keyword": "scene_000", "_files": [scene_img]}]
 
     settings = SimpleNamespace(
-        ratio="9:16", voice="zh-CN-YunyangNeural", subtitles=True, language="zh-CN",
+        ratio="9:16", voice="en-US-ChristopherNeural", subtitles=True, language="en-US",
         subtitle_style="high_retention", music="none", filter="none", vibe="suspense_cn",
         emoji_subtitles=False, watermark=False, logo_path="static/logo.png",
     )

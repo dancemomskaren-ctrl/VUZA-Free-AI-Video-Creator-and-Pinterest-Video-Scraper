@@ -24,7 +24,7 @@ def get_async_playwright():
     try:
         from playwright.async_api import async_playwright
     except ModuleNotFoundError as exc:
-        raise RuntimeError("Pinterest 和网页链接抓取需要安装 Playwright：pip install playwright && playwright install chromium") from exc
+        raise RuntimeError("Pinterest and URL scraping require Playwright: pip install playwright && playwright install chromium") from exc
     return async_playwright
 
 class PinterestScraper:
@@ -386,7 +386,7 @@ class LLMProcessor:
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
             "HTTP-Referer": "https://vuza.local",
-            "X-Title": "VUZA Chinese Suspense Video Generator"
+            "X-Title": "VUZA AI Video Creator"
         }
 
     def _format_api_error(self, response):
@@ -424,8 +424,8 @@ class LLMProcessor:
                 )
             except requests.Timeout as exc:
                 self.last_error = (
-                    f"AI 接口响应超时（第 {attempt}/{attempts} 次）：{exc}。"
-                    "如果一直超时，可以换 deepseek-chat、稍后重试，或改用 OpenRouter。"
+                    f"AI API timed out (attempt {attempt}/{attempts}): {exc}. "
+                    "If it keeps timing out, try deepseek-chat, retry later, or switch to OpenRouter."
                 )
                 print(f"❌ {self.last_error}")
                 if attempt < attempts:
@@ -434,8 +434,8 @@ class LLMProcessor:
                 return None
             except requests.ConnectionError as exc:
                 self.last_error = (
-                    f"无法连接 AI 接口（第 {attempt}/{attempts} 次）：{exc}。"
-                    "请检查网络、代理，或稍后重试。"
+                    f"Could not connect to the AI API (attempt {attempt}/{attempts}): {exc}. "
+                    "Check your network/proxy or retry later."
                 )
                 print(f"❌ {self.last_error}")
                 if attempt < attempts:
@@ -443,12 +443,12 @@ class LLMProcessor:
                     continue
                 return None
             except requests.RequestException as exc:
-                self.last_error = f"无法连接 AI 接口：{exc}"
+                self.last_error = f"Could not connect to the AI API: {exc}"
                 print(f"❌ LLM request failed: {exc}")
                 return None
 
             if response.status_code in {429, 500, 502, 503, 504} and attempt < attempts:
-                self.last_error = f"AI 接口繁忙（HTTP {response.status_code}），正在重试 {attempt}/{attempts}..."
+                self.last_error = f"AI API busy (HTTP {response.status_code}), retrying {attempt}/{attempts}..."
                 print(f"⚠️ {self.last_error}")
                 time.sleep(4 * attempt)
                 continue
@@ -458,31 +458,31 @@ class LLMProcessor:
             if response.status_code == 404:
                 if self._is_deepseek_api():
                     self.last_error = (
-                        f"DeepSeek 官方接口地址或模型不存在（HTTP 404）。当前接口地址：{self.api_url}；"
-                        f"当前模型：{model}。DeepSeek 官方地址可填 https://api.deepseek.com，"
-                        "模型名示例：deepseek-v4-pro。"
+                        f"DeepSeek API URL or model not found (HTTP 404). Current URL: {self.api_url}; "
+                        f"current model: {model}. Official DeepSeek URL: https://api.deepseek.com, "
+                        "example model: deepseek-v4-pro."
                     )
                 else:
                     self.last_error = (
-                        f"AI 接口地址或模型不存在（HTTP 404）。当前接口地址：{self.api_url}；"
-                        f"当前模型：{model}。OpenRouter 地址应为 https://openrouter.ai/api/v1/chat/completions，"
-                        "模型名示例：deepseek/deepseek-v4-pro。"
+                        f"AI API URL or model not found (HTTP 404). Current URL: {self.api_url}; "
+                        f"current model: {model}. The OpenRouter URL should be https://openrouter.ai/api/v1/chat/completions, "
+                        "example model: deepseek/deepseek-v4-pro."
                     )
             else:
-                self.last_error = f"模型 {model} 调用失败（HTTP {response.status_code}）：{self._format_api_error(response)}"
+                self.last_error = f"Model {model} call failed (HTTP {response.status_code}): {self._format_api_error(response)}"
             print(f"❌ {self.last_error}")
             return None
 
         try:
             return response.json()["choices"][0]["message"]["content"].strip()
         except Exception as exc:
-            self.last_error = f"AI 返回格式异常：{exc}"
+            self.last_error = f"AI returned an unexpected format: {exc}"
             print(f"❌ {self.last_error}")
             return None
 
     def extract_keywords(self, script, vibe="aesthetic"):
         if not self.api_key:
-            self.last_error = "未收到 AI API 密钥，请先在 API 设置里填写。"
+            self.last_error = "No AI API key received. Add your key in API Settings first."
             print("⚠️ LLM API key not set! Please add your AI API key in settings.")
             return []
 
@@ -498,18 +498,20 @@ Rules:
 - Think like a stock video searcher: what simple word would find a matching clip?
 - Avoid abstract or poetic words. Use concrete, visual, real-world words.
 Return format: Sentence → keyword""",
-            "suspense_cn": """把中文悬疑短视频旁白拆成适合配画面的短句。
-对每一句生成 1 个英文素材搜索关键词，必须是 Pexels/Pixabay 容易搜到的具体画面。
-规则:
-- 左边保留原中文旁白句子。
-- 右边只写英文关键词，1-4 个词，不要中文，不要抽象词。
-- 关键词要偏悬疑、夜晚、空房间、走廊、手机、门、窗、影子、雨、监控、脚步、老照片等可视化元素。
-- 不要输出解释、编号、场景描述或角色名。
-返回格式严格为: 中文句子 → english keyword""",
+            "suspense": """Split this suspense narration into short lines that pair well with visuals.
+For each line, generate 1 English stock-media search keyword that matches concrete, easy-to-find footage on Pexels/Pixabay.
+Rules:
+- Left side: keep the original narration line exactly.
+- Right side: English keyword only, 1-4 words, no abstract words.
+- Favor suspense-adjacent visuals: night, empty rooms, hallways, phones, doors, windows, shadows, rain, security cameras, footsteps, old photos.
+- No explanations, numbering, scene descriptions, or character names.
+Return format strictly: narration line → english keyword""",
             "futuristic": "Break script into sentences. For each, give 1 futuristic/cyberpunk keyword (2-4 words, end with 'futuristic'). Return: Sentence → keyword",
             "black_and_white": "Break script into sentences. For each, give 1 noir/vintage keyword (2-4 words, end with 'black and white'). Return: Sentence → keyword"
         }
         prompt = prompts.get(vibe, prompts["aesthetic"])
+        if vibe == "suspense_cn":  # legacy key from the Chinese edition
+            prompt = prompts["suspense"]
         for m in self.models:
             print(f"🤖 LLM ({m}) | Vibe: {vibe}")
             content = self._chat(
@@ -522,12 +524,12 @@ Return format: Sentence → keyword""",
                 parsed = self._parse(content)
                 if parsed:
                     return parsed
-                self.last_error = f"AI 已返回内容，但没有按“句子 → keyword”格式输出：{content[:200]}"
+                self.last_error = f"AI returned content but not in the 'line → keyword' format: {content[:200]}"
         return []
 
     def generate_viral_metadata(self, script):
         if not self.api_key:
-            self.last_error = "未收到 AI API 密钥，请先在 API 设置里填写。"
+            self.last_error = "No AI API key received. Add your key in API Settings first."
             return None
         prompt = """Analyze the following video script and act as a viral YouTube expert.
 Generate:
@@ -554,40 +556,40 @@ THUMBNAIL_PROMPT: [Your AI Image Prompt]"""
 
     def generate_full_script(self, topic, vibe="general"):
         if not self.api_key:
-            self.last_error = "未收到 AI API 密钥，请先在 API 设置里填写。"
+            self.last_error = "No AI API key received. Add your key in API Settings first."
             return None
-        if vibe == "suspense_cn":
+        if vibe in ("suspense", "suspense_cn"):
             is_long_source = len(topic) >= 600
             if is_long_source:
-                prompt = """你是抖音中文悬疑剧情解说编剧，擅长把长篇故事改写成高留存旁白。
-用户会给你一篇完整故事。请把它改写成适合自动配画面的中文旁白脚本。
-目标:
-- 保留原文主线，不要压缩成简介或梗概。
-- 必须覆盖关键剧情节点、转折、危机场景、解法和结尾反转。
-- 适合 3-6 分钟竖屏悬疑解说视频。
-结构:
-- 开头 1-2 句必须是强钩子。
-- 中段按原文事件顺序推进，保持紧张感。
-- 每个重要危机场景至少写 4-8 句，不要一句带过。
-- 结尾保留原故事的余味或悬念。
-格式规则:
-- 输出 45-80 句中文旁白，每句独立一行。
-- 每句 10-26 个汉字左右，方便一句配一个画面。
-- 只输出可以直接念出来的旁白。
-- 不要标题、分集标题、镜头说明、编号、项目符号、角色名标签。
-- 不要写“第一章”“下一幕”“画面出现”等说明。
-- 不要添加原文没有的关键设定。"""
+                prompt = """You are a viral short-form suspense storyteller who adapts long stories into high-retention narration.
+The user gives you a full story. Rewrite it as a narration script suited for automatic scene-by-scene video generation.
+Goals:
+- Keep the main plotline; do NOT compress it into a summary.
+- Cover the key plot beats, twists, crisis moments, resolutions, and the ending reversal.
+- Suitable for a 3-6 minute vertical suspense narration video.
+Structure:
+- Open with a strong 1-2 line hook.
+- Advance events in order through the middle, keeping tension.
+- Write at least 4-8 lines for each major crisis scene; don't rush past them.
+- Keep the original story's aftertaste or suspense at the end.
+Format rules:
+- Output 45-80 narration lines, one per line.
+- Each line roughly 8-20 words, so one line pairs with one visual.
+- Output only narration that can be read aloud.
+- No titles, episode headers, camera directions, numbering, bullets, or character-name labels.
+- No meta phrases like "Chapter 1", "next scene", or "the image shows".
+- Do not invent key settings absent from the source."""
                 max_tokens = 5000
             else:
-                prompt = """你是抖音中文原创悬疑剧情解说编剧。
-用户会给你一个主题或悬疑点子。请写一段 30-60 秒的原创悬疑短视频旁白。
-结构必须是: 3 秒钩子 -> 异常细节 -> 反转或疑点 -> 悬念结尾。
-规则:
-- 输出 8-12 句中文旁白，每句独立一行。
-- 每句 10-24 个汉字左右，适合一句话配一个画面。
-- 只写可以直接念出来的旁白，不要标题、镜头说明、角色名标签、编号。
-- 氛围要克制、紧张、有画面感，避免血腥暴力和真实案件指认。
-- 最后一行留下悬念，适合引导观众看下一集。"""
+                prompt = """You are a viral short-form suspense writer for TikTok/Reels/YouTube Shorts.
+The user gives you a topic or suspense idea. Write an original 30-60 second suspense narration.
+Structure: 3-second hook -> unsettling detail -> twist or open question -> cliffhanger ending.
+Rules:
+- Output 8-12 narration lines, each on its own line.
+- Each line 8-18 words, so one line pairs with one visual.
+- Output ONLY spoken narration: no titles, no scene directions, no character-name labels, no numbering.
+- Keep the tone restrained, tense, and visual; avoid gore and references to real cases.
+- The final line must leave the audience wanting the next part."""
                 max_tokens = 1200
 
             for m in self.models:
@@ -658,33 +660,33 @@ Rules:
     def generate_image_description(self, sentence):
         """Generates a detailed visual description for AI image generation fallback."""
         if not self.api_key:
-            self.last_error = "未收到 AI API 密钥，无法生成画面提示词。"
+            self.last_error = "No AI API key received. Add your key in API Settings first."
             return None
-        prompt = "Describe a high-quality, cinematic suspense illustration representing this sentence. If the sentence is Chinese, return the description in English. Return ONLY the description (max 28 words)."
+        prompt = "Describe a high-quality, cinematic suspense illustration representing this sentence. Return ONLY the description (max 28 words)."
         for m in self.models:
             content = self._chat(m, [{"role": "system", "content": prompt}, {"role": "user", "content": sentence}], timeout=30, max_tokens=120)
             if content:
                 return content
         if not self.last_error:
-            self.last_error = "AI 没有生成可用的画面提示词。"
+            self.last_error = "AI did not produce a usable image description."
         return None
 
     def generate_character_profile(self, script):
         """Builds a reusable English protagonist profile for consistent AI scenes."""
         if not self.api_key:
-            self.last_error = "未收到 AI API 密钥，无法生成主角设定。"
+            self.last_error = "No AI API key received. Add your key in API Settings first."
             return None
 
-        prompt = """Read the Chinese suspense story and infer the main on-screen protagonist/narrator.
+        prompt = """Read the suspense story and infer the main on-screen protagonist/narrator.
 Return one concise English visual character profile for consistent image generation.
-Include: gender, age range, ethnicity, face, hair, clothes, mood, and 2-3 signature visual details.
+Include: gender, age range, face, hair, clothes, mood, and 2-3 signature visual details.
 Do not mention names. Do not include explanations. Max 45 words."""
         for m in self.models:
             content = self._chat(m, [{"role": "system", "content": prompt}, {"role": "user", "content": script[:12000]}], timeout=40, max_tokens=180)
             if content:
                 return content.strip()
         if not self.last_error:
-            self.last_error = "AI 没有生成可用的主角设定。"
+            self.last_error = "AI did not produce a usable character profile."
         return None
 
     def _parse_json_array(self, text):
@@ -697,26 +699,26 @@ Do not mention names. Do not include explanations. Max 45 words."""
             cleaned = cleaned[start:end + 1]
         return json.loads(cleaned)
 
-    def generate_scene_prompts(self, scene_items, character_profile="", vibe="suspense_cn"):
+    def generate_scene_prompts(self, scene_items, character_profile="", vibe="suspense"):
         """Generate high-quality Seedream image prompts for already-split narration rows."""
         if not self.api_key:
-            self.last_error = "AI 生图模式需要 DeepSeek/兼容 LLM API Key 来生成画面提示词。"
+            self.last_error = "AI image mode needs a DeepSeek/compatible LLM API key to generate image prompts."
             return None
 
         prompted_items = []
         batch_size = 10
-        system_prompt = f"""你是豆包 Seedream 4.5 的悬疑短视频分镜提示词导演。
-任务：根据每句中文旁白，生成高质量竖屏画面提示词，用于 AI 生图。
-全片主角设定：{character_profile or "保持同一个中国悬疑故事主角，真实影视感。"}
-要求：
-- 每个提示词必须具体描述画面主体、场景、光线、镜头、情绪和悬疑细节。
-- 适合 9:16 竖屏短视频，真实中国网剧质感，电影感，暗调但画面清楚。
-- 如果旁白提到同一个“我/主角”，保持主角外貌、服装和气质一致。
-- 不要生成字幕、文字、水印、Logo、界面乱码。
-- 避免血腥、过度恐怖、真实人物指认。
-- image_prompt 写中文即可，可夹少量英文摄影术语。
-- keyword 写一个短英文文件夹名，2-5 个词，用下划线连接。
-只输出 JSON 数组，不要解释。格式：
+        system_prompt = f"""You are a storyboard prompt director for Seedream 4.5 suspense short videos.
+Task: for each narration line, write a high-quality vertical (9:16) image prompt for AI image generation.
+Series protagonist: {character_profile or "keep the same suspense-story protagonist across scenes, realistic cinematic look."}
+Requirements:
+- Each prompt must concretely describe the subject, setting, lighting, camera, mood, and a suspense detail.
+- Suited for 9:16 vertical video with a realistic cinematic-film look; dark and moody but clearly readable.
+- When the line refers to the same "I/protagonist", keep their appearance, clothing, and vibe consistent.
+- Do not generate subtitles, text, watermarks, logos, or UI artifacts.
+- Avoid gore, excessive horror, and real identifiable people.
+- Write image_prompt in English.
+- Write keyword as a short English folder name, 2-5 words, joined with underscores.
+Output ONLY a JSON array, no explanations. Format:
 [{{"id":1,"keyword":"dark_room_phone","image_prompt":"..."}}]"""
 
         for start in range(0, len(scene_items), batch_size):
@@ -744,7 +746,7 @@ Do not mention names. Do not include explanations. Max 45 words."""
             try:
                 parsed = self._parse_json_array(content)
             except Exception as exc:
-                self.last_error = f"DeepSeek 画面提示词返回格式异常：{exc}；返回片段：{content[:200]}"
+                self.last_error = f"Scene-prompt response had an unexpected format: {exc}; snippet: {content[:200]}"
                 return None
 
             by_id = {}
@@ -760,7 +762,7 @@ Do not mention names. Do not include explanations. Max 45 words."""
                 keyword = re.sub(r"[^\w\-]+", "_", keyword)[:40] or f"scene_{start + idx + 1:03d}"
                 prompt = (row.get("image_prompt") or "").strip()
                 if not prompt:
-                    self.last_error = f"DeepSeek 没有为第 {start + idx + 1} 句生成画面提示词。"
+                    self.last_error = f"AI did not return an image prompt for line {start + idx + 1}."
                     return None
                 prompted_items.append({
                     "sentence": item["sentence"],

@@ -1,4 +1,4 @@
-console.log("🚀 VUZA v5 — 中文悬疑短视频自动生成工具");
+console.log("🚀 VUZA v5 — Free AI Video Creator (English)");
 
 document.addEventListener('DOMContentLoaded', () => {
     // ── Elements ──
@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
             eleven_key: document.getElementById('eleven-key').value.trim()
         };
         localStorage.setItem('vuza_api_keys', JSON.stringify(keys));
-        showToast('✅ 设置已保存', 'success');
+        showToast('✅ Settings saved', 'success');
     }
 
     function getKeys() {
@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
         addScriptBtn.addEventListener('click', () => {
             const div = document.createElement('div');
             div.className = 'script-item';
-            div.innerHTML = `<textarea class="script-input" placeholder="粘贴另一个脚本，用于批量生成"></textarea><button type="button" class="remove-script-btn">×</button>`;
+            div.innerHTML = `<textarea class="script-input" placeholder="Paste another script for batch generation"></textarea><button type="button" class="remove-script-btn">×</button>`;
             scriptsContainer.appendChild(div);
             div.querySelector('.remove-script-btn').addEventListener('click', () => div.remove());
         });
@@ -178,38 +178,38 @@ document.addEventListener('DOMContentLoaded', () => {
             const firstScript = scriptsContainer.querySelector('.script-input');
             if (!firstScript) return;
 
-            if (template === 'suspense_cn') {
-                firstScript.value = "凌晨两点，我收到一条陌生短信。\n短信里只有五个字：别回头看。\n可我明明一个人住在这间屋子。\n窗外的雨声突然停了。\n门缝下面，慢慢塞进来一张旧照片。\n照片上站着的，竟然是十年前的我。\n更奇怪的是，我身后还有一个模糊的人影。\n下一秒，手机又响了：他已经进来了。";
+            if (template === 'suspense') {
+                firstScript.value = "At 2 AM, my phone buzzed with a text from an unknown number.\nIt said only four words: \"Don't turn around.\"\nBut I live alone.\nThe rain outside suddenly stopped.\nUnder my door, an old photograph slid slowly across the floor.\nIn the photo, I'm standing in this exact room — ten years ago.\nAnd behind me, a blurred figure I've never been able to explain.\nThen my phone lit up again: \"He's already inside.\"";
                 document.getElementById('vibe-suspense').checked = true;
                 applySuspenseDefaults();
             } else if (template === 'motivational') {
-                firstScript.value = "真正拉开差距的，从来不是某一次爆发。\n而是你在没人看见的时候，依然愿意往前走。\n今天慢一点没关系，只要别停下来。\n你以为自己只是撑过了一天，其实你正在变强。";
+                firstScript.value = "What separates people isn't one big moment of effort.\nIt's what you do when nobody's watching.\nMoving slowly today is fine — just don't stop.\nYou think you barely survived the day, but you're actually getting stronger.";
                 document.getElementById('vibe-aesthetic').checked = true;
                 document.getElementById('ratio-9-16').checked = true;
             } else if (template === 'educational') {
-                firstScript.value = "你知道吗，蜂蜜几乎不会自然变质。\n考古学家曾在古埃及墓葬里发现三千多年前的蜂蜜。\n它依然可以食用。\n原因是蜂蜜含水量低、酸性强，细菌很难在里面生长。";
+                firstScript.value = "Did you know honey almost never spoils?\nArchaeologists found 3,000-year-old honey in Egyptian tombs.\nAnd it was still perfectly edible.\nThe reason: honey has low moisture and high acidity, so bacteria can't grow in it.";
                 document.getElementById('vibe-general').checked = true;
                 document.getElementById('ratio-16-9').checked = true;
             } else if (template === 'storytelling') {
-                firstScript.value = "那家旧书店只在雨夜开门。\n小女孩在最里面的书架上，发现了一本没有书名的地图册。\n她刚翻开第一页，柜台上的钟就停了。\n地图中央，慢慢浮现出她家的地址。";
+                firstScript.value = "The old bookstore only opened on rainy nights.\nOn the deepest shelf, a girl found an atlas with no title.\nThe moment she opened it, the clock behind the counter stopped.\nAnd in the center of the map, her home address slowly appeared.";
                 document.getElementById('vibe-aesthetic').checked = true;
                 document.getElementById('ratio-9-16').checked = true;
             } else if (template === 'lofi_vibes') {
-                firstScript.value = "深夜的雨敲在窗户上。\n桌上还有一杯温热的咖啡。\n远处的城市灯光慢慢散开。\n这一刻，世界终于安静下来。";
+                firstScript.value = "Midnight rain tapping on the window.\nA warm cup of coffee still steaming on the desk.\nCity lights blurring into the distance.\nFor once, the world feels quiet.";
                 document.getElementById('vibe-lofi').checked = true;
                 document.getElementById('ratio-9-16').checked = true;
             } else if (template === 'news') {
-                firstScript.value = "最新消息，科学家发现了一颗可能适合生命存在的类地行星。\n它距离地球约二十光年，围绕一颗红矮星运行。\n研究团队正在进一步确认那里是否存在水和大气。\n这项发现可能会改写我们对宜居星球的认识。";
+                firstScript.value = "Breaking: scientists have identified an exoplanet that could support life.\nIt sits about twenty light-years away, orbiting a red dwarf star.\nThe team is now checking for water and atmosphere.\nThis discovery could reshape how we think about habitable worlds.";
                 document.getElementById('vibe-general').checked = true;
                 document.getElementById('ratio-16-9').checked = true;
                 document.getElementById('subtitle-style').value = 'yellow_box';
             } else if (template === 'tutorial') {
-                firstScript.value = "三步做出一杯更稳定的手冲咖啡。\n第一步，把咖啡豆磨到中细研磨。\n第二步，把水温控制在九十二到九十五度。\n第三步，绕圈慢慢注水，让香气充分释放。";
+                firstScript.value = "Three steps to a better pour-over coffee.\nStep one: grind your beans to a medium-fine consistency.\nStep two: keep the water between 92 and 95 degrees Celsius.\nStep three: pour in slow circles and let the flavor bloom.";
                 document.getElementById('vibe-general').checked = true;
                 document.getElementById('ratio-9-16').checked = true;
                 document.getElementById('subtitle-style').value = 'bold_outline';
             }
-            if (template) showToast('✅ 模板已载入', 'success');
+            if (template) showToast('✅ Template loaded', 'success');
         });
     }
 
@@ -219,11 +219,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const voiceMap = {
         'en-US': [
-            { name: '🎙️ Christopher（免费）', value: 'en-US-ChristopherNeural' },
-            { name: '🎤 Jenny（免费）', value: 'en-US-JennyNeural' },
-            { name: '🌟 Adam（ElevenLabs）', value: 'eleven_pNInz6obpg8ndclQU7Nc' },
-            { name: '🌟 Antoni（ElevenLabs）', value: 'eleven_ErXwBPLxhSj618Y4yxKI' },
-            { name: '🌟 Bella（ElevenLabs）', value: 'eleven_EXAVITQu4vr4xnSDxMaL' }
+            { name: '🇺🇸 Christopher (male)', value: 'en-US-ChristopherNeural' },
+            { name: '🇺🇸 Jenny (female)', value: 'en-US-JennyNeural' },
+            { name: '🇺🇸 Guy (male)', value: 'en-US-GuyNeural' },
+            { name: '🇺🇸 Aria (female)', value: 'en-US-AriaNeural' },
+            { name: '🌟 Adam (ElevenLabs)', value: 'eleven_pNInz6obpg8ndclQU7Nc' },
+            { name: '🌟 Antoni (ElevenLabs)', value: 'eleven_ErXwBPLxhSj618Y4yxKI' },
+            { name: '🌟 Bella (ElevenLabs)', value: 'eleven_EXAVITQu4vr4xnSDxMaL' }
         ],
         'en-GB': [
             { name: '🇬🇧 Ryan', value: 'en-GB-RyanNeural' },
@@ -256,8 +258,8 @@ document.addEventListener('DOMContentLoaded', () => {
             { name: '🇵🇰 Uzma', value: 'ur-PK-UzmaNeural' }
         ],
         'zh-CN': [
-            { name: '🇨🇳 云扬（男声）', value: 'zh-CN-YunyangNeural' },
-            { name: '🇨🇳 晓晓（女声）', value: 'zh-CN-XiaoxiaoNeural' }
+            { name: '🇨🇳 Yunyang (male)', value: 'zh-CN-YunyangNeural' },
+            { name: '🇨🇳 Xiaoxiao (female)', value: 'zh-CN-XiaoxiaoNeural' }
         ],
         'ja-JP': [
             { name: '🇯🇵 Keita', value: 'ja-JP-KeitaNeural' },
@@ -268,7 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateVoices() {
         const lang = languageSelect.value;
         const voices = voiceMap[lang] || [];
-        voiceSelect.innerHTML = voices.map(v => `<option value="${v.value}">${v.name}</option>`).join('') + '<option value="none">🔇 不配音（仅素材模式）</option>';
+        voiceSelect.innerHTML = voices.map(v => `<option value="${v.value}">${v.name}</option>`).join('') + '<option value="none">🔇 No voiceover (stock media only)</option>';
     }
 
     function applySuspenseDefaults() {
@@ -286,10 +288,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (suspenseVibe) suspenseVibe.checked = true;
 
         if (languageSelect) {
-            languageSelect.value = 'zh-CN';
+            languageSelect.value = 'en-US';
             updateVoices();
         }
-        if (voiceSelect) voiceSelect.value = 'zh-CN-YunyangNeural';
+        if (voiceSelect) voiceSelect.value = 'en-US-ChristopherNeural';
 
         const musicSelect = document.getElementById('music-select');
         if (musicSelect) musicSelect.value = 'none';
@@ -297,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const subtitleStyle = document.getElementById('subtitle-style');
         if (subtitleStyle) subtitleStyle.value = 'high_retention';
 
-        if (topicInput) topicInput.placeholder = '短主题：半夜收到已故室友的短信。也可以直接粘贴长篇故事，系统会自动改写成长版解说脚本。';
+        if (topicInput) topicInput.placeholder = 'Short topic: a text from a roommate who moved out a year ago. You can also paste a long story and it will be adapted into a full narration script.';
     }
 
     if (languageSelect) {
@@ -324,11 +326,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (scrapeUrlBtn) {
         scrapeUrlBtn.addEventListener('click', async () => {
             const url = urlInput.value.trim();
-            if (!url) { showToast('请先粘贴文章链接', 'error'); return; }
+            if (!url) { showToast('Paste an article link first', 'error'); return; }
 
             const keys = getKeys();
             scrapeUrlBtn.disabled = true;
-            scrapeUrlBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在提取...';
+            scrapeUrlBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Extracting...';
 
             try {
                 const response = await fetch('/api/scrape_url', {
@@ -345,16 +347,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     const firstScript = scriptsContainer.querySelector('.script-input');
                     if (firstScript) {
                         firstScript.value = data.script;
-                        showToast('✅ 已提取并总结成脚本', 'success');
+                        showToast('✅ Extracted and summarized into a script', 'success');
                     }
                 } else {
-                    showToast(await readErrorMessage(response, '提取失败'), 'error');
+                    showToast(await readErrorMessage(response, 'Extraction failed'), 'error');
                 }
             } catch (error) {
-                showToast('网络错误', 'error');
+                showToast('Network error', 'error');
             } finally {
                 scrapeUrlBtn.disabled = false;
-                scrapeUrlBtn.innerHTML = '<i class="fas fa-file-download"></i> 提取脚本';
+                scrapeUrlBtn.innerHTML = '<i class="fas fa-file-download"></i> Extract script';
             }
         });
     }
@@ -363,20 +365,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (generateScriptBtn) {
         generateScriptBtn.addEventListener('click', async () => {
             const topic = topicInput.value.trim();
-            if (!topic) { showToast('请先输入悬疑主题或粘贴长篇原文', 'error'); return; }
+            if (!topic) { showToast('Enter a topic or paste long-form source text first', 'error'); return; }
 
             const keys = getKeys();
             const vibe = document.querySelector('input[name="vibe"]:checked').value;
 
             if (!keys.llm_key) {
                 showApiSettings();
-                showToast('请先在 API 设置里填写 AI API 密钥', 'error');
+                showToast('Add your AI API key in API Settings first', 'error');
                 return;
             }
             persistKeys(keys);
 
             generateScriptBtn.disabled = true;
-            generateScriptBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在生成...';
+            generateScriptBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
 
             try {
                 const response = await fetch('/api/generate_script', {
@@ -398,16 +400,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     const firstScript = scriptsContainer.querySelector('.script-input');
                     if (firstScript) {
                         firstScript.value = data.script;
-                        showToast('✅ 脚本生成成功', 'success');
+                        showToast('✅ Script generated', 'success');
                     }
                 } else {
-                    showToast(await readErrorMessage(response, '脚本生成失败'), 'error');
+                    showToast(await readErrorMessage(response, 'Script generation failed'), 'error');
                 }
             } catch (error) {
-                showToast('网络错误', 'error');
+                showToast('Network error', 'error');
             } finally {
                 generateScriptBtn.disabled = false;
-                generateScriptBtn.innerHTML = '<i class="fas fa-magic"></i> 生成脚本';
+                generateScriptBtn.innerHTML = '<i class="fas fa-magic"></i> Generate script';
             }
         });
     }
@@ -419,17 +421,17 @@ document.addEventListener('DOMContentLoaded', () => {
                                 .map(s => s.value.trim())
                                 .filter(s => s !== "");
 
-            if (scripts.length === 0) { showToast('请先输入或生成脚本', 'error'); return; }
+            if (scripts.length === 0) { showToast('Enter or generate a script first', 'error'); return; }
 
             const keys = getKeys();
             if (!keys.llm_key) {
                 showApiSettings();
-                showToast('请先在 API 设置里填写 AI API 密钥', 'error');
+                showToast('Add your AI API key in API Settings first', 'error');
                 return;
             }
             persistKeys(keys);
             analyzeBtn.disabled = true;
-            analyzeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在分析...';
+            analyzeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
 
             try {
                 const response = await fetch('/api/analyze', {
@@ -452,15 +454,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     aiHashtags.value = data.hashtags;
                     if (aiThumbPrompt) aiThumbPrompt.value = data.thumbnail_prompt || "";
                     analysisPanel.classList.remove('hidden');
-                    showToast('✅ 分析完成', 'success');
+                    showToast('✅ Analysis complete', 'success');
                 } else {
-                    showToast(await readErrorMessage(response, '分析失败'), 'error');
+                    showToast(await readErrorMessage(response, 'Analysis failed'), 'error');
                 }
             } catch (error) {
-                showToast('网络错误', 'error');
+                showToast('Network error', 'error');
             } finally {
                 analyzeBtn.disabled = false;
-                analyzeBtn.innerHTML = '<i class="fas fa-brain"></i> AI 标题分析';
+                analyzeBtn.innerHTML = '<i class="fas fa-brain"></i> AI Title Analyzer';
             }
         });
     }
@@ -473,8 +475,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             .map(s => s.value.trim())
                             .filter(s => s !== "");
 
-        if (currentMode === 'single' && !query) { showToast('请输入素材搜索词', 'error'); return; }
-        if (currentMode === 'script' && scripts.length === 0) { showToast('请至少输入一个脚本', 'error'); return; }
+        if (currentMode === 'single' && !query) { showToast('Enter a stock search term first', 'error'); return; }
+        if (currentMode === 'script' && scripts.length === 0) { showToast('Enter at least one script', 'error'); return; }
 
         const source = document.querySelector('input[name="source"]:checked').value;
         const mediaType = document.querySelector('input[name="media_type"]:checked').value;
@@ -498,44 +500,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const allowedMusic = new Set(['none', 'cinematic.mp3']);
         if (!allowedMusic.has(music)) {
-            showToast('背景音乐选项无效，请重新选择', 'error');
+            showToast('Invalid background music option — pick again', 'error');
             return;
         }
 
         if (source === 'ai' && mediaType !== 'photo') {
-            showToast('AI 生图模式当前只支持图片素材；如需视频素材，请切换到素材来源', 'error');
+            showToast('AI image mode only supports photos; switch media source for videos', 'error');
             return;
         }
 
         if (autoVideo && voice === 'none') {
-            showToast('自动合成视频需要选择一个 AI 配音；如需不配音，请先关闭自动合成视频', 'error');
+            showToast('Auto video needs an AI voiceover; turn auto-assemble off for a silent render', 'error');
             return;
         }
 
         if (autoVideo && currentMode === 'single' && source !== 'ai') {
-            showToast('单条素材搜索不会自动合成视频；请切换到脚本模式，或关闭自动合成视频', 'error');
+            showToast('A single stock search won\'t auto-assemble a video; switch to script mode or turn auto-assemble off', 'error');
             return;
         }
 
         if (source === 'ai' && (!keys.llm_key || !keys.seedream_key)) {
             showApiSettings();
             const missing = [];
-            if (!keys.llm_key) missing.push('AI 文本密钥');
-            if (!keys.seedream_key) missing.push('Seedream 生图密钥');
-            showToast(`请先填写 ${missing.join(' 和 ')}，才能使用 Seedream AI 生图`, 'error');
+            if (!keys.llm_key) missing.push('AI text key');
+            if (!keys.seedream_key) missing.push('Seedream image key');
+            showToast(`Add ${missing.join(' and ')} to use Seedream AI images`, 'error');
             return;
         }
 
         if (currentMode === 'script' && source !== 'ai' && !keys.llm_key) {
             showApiSettings();
-            showToast('脚本模式使用素材来源需要先填写 AI 文本密钥，用于分镜关键词分析', 'error');
+            showToast('Script mode with stock sources needs your AI text key for scene keyword analysis', 'error');
             return;
         }
 
         setLoading(true);
         finalVideoUrl = '';
         pollConnectionErrorShown = false;
-        galleryContainer.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>VUZA 正在处理，请稍等...</p></div>';
+        galleryContainer.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>VUZA is working — hang tight...</p></div>';
 
         try {
             const response = await fetch('/api/scrape', {
@@ -573,14 +575,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (response.ok) {
-                showToast('🚀 已开始生成', 'success');
+                showToast('🚀 Generation started', 'success');
                 startPollingStatus();
             } else {
-                showToast(await readErrorMessage(response, '启动失败'), 'error');
+                showToast(await readErrorMessage(response, 'Failed to start'), 'error');
                 setLoading(false);
             }
         } catch (error) {
-            showToast('网络错误', 'error');
+            showToast('Network error', 'error');
             setLoading(false);
         }
     });
@@ -603,9 +605,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     statusInterval = null;
                     setLoading(false);
                     if (isFailureStatus(status)) {
-                        showToast(status.error || status.message || '生成失败', 'error');
+                        showToast(status.error || status.message || 'Generation failed', 'error');
                     } else {
-                        showToast('✅ 已完成', 'success');
+                        showToast('✅ Done', 'success');
                     }
                 }
             } catch (err) {
@@ -661,9 +663,9 @@ document.addEventListener('DOMContentLoaded', () => {
             (res.files || []).forEach(file => {
                 const isVideo = /\.(mp4|mov|webm)$/i.test(file);
                 if (isVideo) {
-                    html += `<div class="media-card"><video src="${file}" preload="metadata" loop muted onmouseover="this.play()" onmouseout="this.pause()"></video><div class="media-actions"><a href="${file}" download class="icon-btn"><i class="fas fa-download"></i></a><span class="badge">视频</span></div></div>`;
+                    html += `<div class="media-card"><video src="${file}" preload="metadata" loop muted onmouseover="this.play()" onmouseout="this.pause()"></video><div class="media-actions"><a href="${file}" download class="icon-btn"><i class="fas fa-download"></i></a><span class="badge">Video</span></div></div>`;
                 } else {
-                    html += `<div class="media-card"><img src="${file}" loading="lazy"><div class="media-actions"><a href="${file}" download class="icon-btn"><i class="fas fa-download"></i></a><span class="badge">高清</span></div></div>`;
+                    html += `<div class="media-card"><img src="${file}" loading="lazy"><div class="media-actions"><a href="${file}" download class="icon-btn"><i class="fas fa-download"></i></a><span class="badge">HD</span></div></div>`;
                 }
             });
             html += `</div>`;
@@ -678,11 +680,11 @@ document.addEventListener('DOMContentLoaded', () => {
         card.className = 'final-video-card';
         card.innerHTML = `
             <div class="final-video-copy">
-                <span class="final-video-kicker"><i class="fas fa-check-circle"></i> 成片已生成</span>
-                <strong>下载最终视频</strong>
+                <span class="final-video-kicker"><i class="fas fa-check-circle"></i> Final video ready</span>
+                <strong>Download your video</strong>
             </div>
             <a class="final-video-btn" href="${finalVideoUrl}" download>
-                <i class="fas fa-download"></i> 下载最终视频
+                <i class="fas fa-download"></i> Download final video
             </a>
         `;
         galleryContainer.appendChild(card);
@@ -690,7 +692,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     clearBtn.addEventListener('click', () => {
         finalVideoUrl = '';
-        galleryContainer.innerHTML = '<div class="empty-state"><i class="fas fa-cloud-download-alt"></i><p>已清空。</p></div>';
+        galleryContainer.innerHTML = '<div class="empty-state"><i class="fas fa-cloud-download-alt"></i><p>Cleared.</p></div>';
         statusCard.classList.add('hidden');
     });
 
@@ -702,13 +704,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const autoVideo = document.querySelector('input[name="auto_video"]:checked')?.value === 'true';
 
         if (currentMode === 'script') {
-            btnText.textContent = autoVideo ? '脚本到视频' : '按脚本生成素材';
+            btnText.textContent = autoVideo ? 'Script → Video' : 'Generate media from script';
         } else if (source === 'ai' && autoVideo) {
-            btnText.textContent = '主题到视频';
+            btnText.textContent = 'Topic → Video';
         } else if (source === 'ai') {
-            btnText.textContent = 'AI 生成素材';
+            btnText.textContent = 'Generate AI media';
         } else {
-            btnText.textContent = '开始搜素材';
+            btnText.textContent = 'Search stock media';
         }
     }
 
@@ -726,7 +728,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderStatus(status) {
         const progress = normalizeProgress(status.progress);
         const failed = isFailureStatus(status);
-        statusMsg.textContent = status.error || status.message || (failed ? '生成失败' : '处理中...');
+        statusMsg.textContent = status.error || status.message || (failed ? 'Generation failed' : 'Processing...');
         statusCard.classList.toggle('status-error', failed);
         statusPercent.textContent = `${progress}%`;
         progressFill.style.width = `${progress}%`;
@@ -735,11 +737,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function showServiceConnectionError() {
         statusCard.classList.remove('hidden');
         statusCard.classList.add('status-error');
-        statusMsg.textContent = '服务连接错误，请确认后端服务仍在运行';
+        statusMsg.textContent = 'Can\'t reach the backend — make sure the server is still running';
         statusPercent.textContent = '0%';
         progressFill.style.width = '0%';
         if (!pollConnectionErrorShown) {
-            showToast('服务连接错误，请稍后重试', 'error');
+            showToast('Server connection error — try again shortly', 'error');
             pollConnectionErrorShown = true;
         }
     }
@@ -750,7 +752,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const btnLoader = scrapeBtn.querySelector('.btn-loader');
         const btnIcon = scrapeBtn.querySelector('.fa-rocket');
         if (loading) {
-            btnText.textContent = '处理中...';
+            btnText.textContent = 'Processing...';
             if (btnLoader) btnLoader.classList.remove('hidden');
             if (btnIcon) btnIcon.classList.add('hidden');
         } else {
